@@ -1,0 +1,56 @@
+plugins {
+	id 'java'
+	id 'org.springframework.boot' version '3.1.0'
+	id 'io.spring.dependency-management' version '1.1.0'
+}
+
+group = 'com.example'
+version = '0.0.1-SNAPSHOT'
+sourceCompatibility = '17'
+
+repositories {
+	mavenCentral()
+}
+
+dependencies {
+	implementation 'org.springframework.boot:spring-boot-starter-web'
+	implementation 'org.springframework.boot:spring-boot-starter-web-services'
+	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+
+	//
+	implementation 'org.apache.httpcomponents:httpclient:4.5.13'
+
+	// xjc for wsdl -> pojo
+	implementation 'com.sun.xml.bind:jaxb-xjc:4.0.2'
+	implementation 'com.sun.xml.bind:jaxb-core:4.0.2'
+	implementation 'org.glassfish.jaxb:jaxb-runtime:4.0.2'
+}
+
+tasks.named('test') {
+	useJUnitPlatform()
+}
+
+tasks.register('generateJaxb') {
+	group = "build"
+	def jaxbTargetDir = file("src/main/java")
+	doLast {
+		ant {
+			{
+				taskdef(name: 'xjc', classname: 'com.sun.tools.xjc.XJCTask',
+						classpath: configurations.runtimeClasspath.asPath
+				)
+
+				mkdir(dir: jaxbTargetDir)
+
+				xjc(destdir: jaxbTargetDir,
+						package: 'com.allstate.claim',
+						schema: 'http://localhost:8082/ws/claim.wsdl',
+						extension: true,
+				) {
+					arg(value: "-wsdl")
+				}
+			}
+		}
+	}
+}
+compileJava.dependsOn(generateJaxb)
